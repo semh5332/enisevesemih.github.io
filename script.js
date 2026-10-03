@@ -158,12 +158,7 @@ async function saveVideo(pageIndex,slot,blob){const db=await openMediaDB();retur
 async function clearPageVideos(pageIndex){const db=await openMediaDB();return new Promise((resolve,reject)=>{const tx=db.transaction(VIDEO_STORE,'readwrite'),st=tx.objectStore(VIDEO_STORE);for(let i=0;i<10;i++)st.delete(`${pageIndex}-${i}`);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}
 async function deleteVideo(pageIndex,slot=0){const db=await openMediaDB();return new Promise((resolve,reject)=>{const q=db.transaction(VIDEO_STORE,'readwrite').objectStore(VIDEO_STORE).delete(`${pageIndex}-${slot}`);q.onsuccess=resolve;q.onerror=()=>reject(q.error)})}
 
-const STATIC_PHOTOS=["media/pages/01/photo1.png", null, "media/pages/03/photo1.jpeg", "media/pages/04/photo1.jpeg", null, "media/pages/06/photo1.jpeg", null, "media/pages/08/photo1.jpeg", "media/pages/09/photo1.jpeg", "media/pages/10/photo1.jpeg", "media/pages/11/photo1.jpeg", null, null, null, null, "media/pages/16/photo1.jpeg", null, "media/pages/18/photo1.jpeg", "media/pages/19/photo1.jpeg", null, "media/pages/21/photo1.jpeg", "media/pages/22/photo1.jpeg", "media/pages/23/photo1.jpeg", "media/pages/24/photo1.jpeg", "media/pages/25/photo1.jpg"];
-const STATIC_VIDEOS=[null, "media/pages/02/video.mp4", null, null, "media/pages/05/video.mp4", null, "media/pages/07/video.mp4", null, null, null, null, "media/pages/12/video.mp4", "media/pages/13/video.mp4", "media/pages/14/video.mp4", "media/pages/15/video.mp4", null, "media/pages/17/video.mp4", null, null, "media/pages/20/video.mp4", null, null, null, null, null];
-function mediaFor(i){
-  const src=STATIC_PHOTOS[i];
-  return [src, null, null];
-}
+function mediaFor(i){const n=String(i+1).padStart(2,'0');return [`media/pages/${n}/photo1.jpg`,`media/pages/${n}/photo2.jpg`,`media/pages/${n}/photo3.jpg`]}
 function showPlaceholder(slot=0){$('#photoWrap').classList.remove('has-photo');$('#photoPlaceholder small').textContent=`Fotoğraf eklemek için “＋ Fotoğraf Ekle” butonuna bas. (Fotoğraf ${slot+1}/3)`}
 function loadMainPhoto(src){const img=$('#mainPhoto');img.onload=()=>$('#photoWrap').classList.add('has-photo');img.onerror=()=>{img.removeAttribute('src');showPlaceholder()};img.src=src}
 async function slotSource(pageIndex,slot){const saved=await getSavedPhoto(pageIndex,slot);if(saved)return URL.createObjectURL(saved);return mediaFor(pageIndex)[slot]}
@@ -195,7 +190,8 @@ async function renderVideo(){
   const v=await getSavedVideo(current,0);
   const wrap=$('#videoWrap'),el=$('#mainVideo');
   const photo=$('#mainPhoto'), placeholder=$('#photoPlaceholder');
-  const staticVideo=STATIC_VIDEOS[current];
+  const n=String(current+1).padStart(2,'0');
+  const staticVideo=`media/pages/${n}/video.mp4`;
 
   if(v){
     wrap.hidden=false;
@@ -203,20 +199,19 @@ async function renderVideo(){
     placeholder.style.visibility='hidden';
     if(el.src && el.src.startsWith('blob:')) URL.revokeObjectURL(el.src);
     el.src=URL.createObjectURL(v);
-  }else if(staticVideo){
-    // GitHub/static version: use the numbered video committed inside the page folder.
+  }else{
+    // GitHub/static version: use video.mp4 committed inside the page folder.
     el.src=staticVideo;
     el.onerror=()=>{
-      el.removeAttribute('src'); el.load(); wrap.hidden=true;
-      photo.style.visibility=''; placeholder.style.visibility='';
+      if(el.src && el.src.includes(staticVideo)) {
+        el.removeAttribute('src'); el.load(); wrap.hidden=true;
+        photo.style.visibility=''; placeholder.style.visibility='';
+      }
     };
     wrap.hidden=false;
     photo.style.visibility='hidden';
     placeholder.style.visibility='hidden';
     el.load();
-  }else{
-    el.removeAttribute('src'); el.load(); wrap.hidden=true;
-    photo.style.visibility=''; placeholder.style.visibility='';
   }
 }
 async function renderThumbs(){
